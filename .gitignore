@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+data/
+docs/screens/
+*.log
+
+# 运行时生成物
+jieba.cache
+*.cache
+pytest-of-*/

@@ -1,0 +1,112 @@
+{
+  "claims": [
+    {
+      "applicant": "chenwei",
+      "purpose": "上海客户拜访与方案沟通",
+      "trip_start": "2026-10-08",
+      "trip_end": "2026-10-10",
+      "destination": "上海",
+      "category": "差旅费",
+      "claimed_amount": 1460.0,
+      "documents": [
+        "INV-1001-hotel.pdf",
+        "INV-1002-train.pdf",
+        "INV-1003-meal.pdf",
+        "INV-1004-taxi.pdf"
+      ],
+      "submitted_at": "2026-10-12T09:30:00+08:00"
+    },
+    {
+      "applicant": "chenwei",
+      "purpose": "上海行业展会参会",
+      "trip_start": "2026-10-05",
+      "trip_end": "2026-10-07",
+      "destination": "上海",
+      "category": "差旅费",
+      "claimed_amount": 2280.0,
+      "documents": [
+        "INV-2001-hotel.pdf",
+        "INV-2002-train.pdf"
+      ],
+      "submitted_at": "2026-10-09T10:10:00+08:00"
+    },
+    {
+      "applicant": "zhangmin",
+      "purpose": "厦门供应商现场审核",
+      "trip_start": "2026-10-08",
+      "trip_end": "2026-10-10",
+      "destination": "厦门",
+      "category": "差旅费",
+      "claimed_amount": 800.0,
+      "documents": [
+        "INV-3001-hotel-dup.pdf"
+      ],
+      "submitted_at": "2026-10-13T14:20:00+08:00"
+    },
+    {
+      "applicant": "liuyang",
+      "purpose": "杭州渠道伙伴洽谈",
+      "trip_start": "2026-10-10",
+      "trip_end": "2026-10-11",
+      "destination": "杭州",
+      "category": "差旅费",
+      "claimed_amount": 520.0,
+      "documents": [
+        "INV-4001-hotel-wrongbuyer.pdf"
+      ],
+      "submitted_at": "2026-10-12T16:40:00+08:00"
+    },
+    {
+      "applicant": "zhangmin",
+      "purpose": "成都合作方拜访",
+      "trip_start": "",
+      "trip_end": "",
+      "destination": "成都",
+      "category": "差旅费",
+      "claimed_amount": 180.0,
+      "documents": [
+        "INV-5001-meal.pdf"
+      ],
+      "submitted_at": "2026-10-15T11:00:00+08:00"
+    },
+    {
+      "applicant": "chenwei",
+      "purpose": "年度合作洽谈招待",
+      "trip_start": "2026-10-16",
+      "trip_end": "2026-10-16",
+      "destination": "厦门",
+      "category": "业务招待费",
+      "claimed_amount": 3200.0,
+      "documents": [
+        "INV-6001-ent.pdf"
+      ],
+      "submitted_at": "2026-10-16T20:30:00+08:00"
+    },
+    {
+      "applicant": "liuyang",
+      "purpose": "南京客户现场支持",
+      "trip_start": "2026-10-18",
+      "trip_end": "2026-10-20",
+      "destination": "南京",
+      "category": "差旅费",
+      "claimed_amount": 95.0,
+      "documents": [
+        "INV-7001-taxi.pdf"
+      ],
+      "submitted_at": "2026-10-20T09:00:00+08:00"
+    },
+    {
+      "applicant": "zhangmin",
+      "purpose": "武汉客户交付支持",
+      "trip_start": "2026-10-11",
+      "trip_end": "2026-10-13",
+      "destination": "武汉",
+      "category": "差旅费",
+      "claimed_amount": 860.0,
+      "documents": [
+        "INV-8001-hotel-scan.pdf"
+      ],
+      "submitted_at": "2026-10-14T10:00:00+08:00"
+    }
+  ]
+}

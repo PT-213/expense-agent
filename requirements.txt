@@ -1,0 +1,12 @@
+fastapi==0.146.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+pymupdf==1.28.2
+reportlab==5.0.1
+pillow==13.0.0
+rapidocr_onnxruntime==1.2.3
+onnxruntime==1.31.0
+numpy==2.3.5
+jieba==0.42.1
+httpx==0.28.1
+pytest==8.4.2

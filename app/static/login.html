@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登录 · 报销预审数字员工</title>
+<link rel="stylesheet" href="/static/styles.css?v=1" />
+</head>
+<body>
+<div class="login-shell">
+  <aside class="login-visual">
+    <div class="login-brand">
+      <div class="seal">审</div>
+      <div>
+        <h1>报销预审数字员工</h1>
+        <p>EXPENSE REVIEW AGENT</p>
+      </div>
+    </div>
+
+    <div class="login-hero">
+      <span class="eyebrow">岗位级 AI · 人机协同</span>
+      <h2>把报销预审<br />交给一位<em>会讲依据</em>的数字同事</h2>
+      <p>自动读票、对政策、查重复、算可报金额，<br />每条结论都能追到票据字段与政策条款，关键节点交人拍板。</p>
+      <div class="login-metrics">
+        <div><strong>18<span style="font-size:13px">条</span></strong><span>确定性规则</span></div>
+        <div><strong>6<span style="font-size:13px">部</span></strong><span>政策依据</span></div>
+        <div><strong>100<span style="font-size:13px">%</span></strong><span>结论可追溯</span></div>
+      </div>
+    </div>
+
+    <div class="login-foot">
+      <span>厦门商集网络科技有限责任公司</span>
+      <span>演示环境 · 票据均为虚构</span>
+    </div>
+  </aside>
+
+  <main class="login-panel">
+    <div class="login-card">
+      <h3>账号登录</h3>
+      <p class="sub">三个角色，看到三种不同的工作台</p>
+      <div class="login-error" id="err"></div>
+      <form id="form">
+        <div class="field">
+          <label for="username">用户名</label>
+          <input class="input" id="username" name="username" autocomplete="username" value="approver" required />
+        </div>
+        <div class="field">
+          <label for="password">密码</label>
+          <input class="input" id="password" name="password" type="password" autocomplete="current-password" value="Approve@123" required />
+        </div>
+        <button class="btn btn-primary btn-block" id="submit" type="submit">进入工作台</button>
+      </form>
+
+      <div class="demo-accounts">
+        <span>演示账号（点击填充）</span>
+        <div class="demo-row" data-u="approver" data-p="Approve@123">
+          <div class="who"><b>财务审批人</b><i>approver / Approve@123</i></div>
+          <span class="tag">审批与接管</span>
+        </div>
+        <div class="demo-row" data-u="chenwei" data-p="Demo@123">
+          <div class="who"><b>报销申请人 · 陈伟</b><i>chenwei / Demo@123</i></div>
+          <span class="tag">只看本人</span>
+        </div>
+        <div class="demo-row" data-u="admin" data-p="Admin@123">
+          <div class="who"><b>平台管理员</b><i>admin / Admin@123</i></div>
+          <span class="tag">全量 + 审计</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const form = document.getElementById('form');
+const err = document.getElementById('err');
+const submit = document.getElementById('submit');
+
+document.querySelectorAll('.demo-row').forEach(row => {
+  row.addEventListener('click', () => {
+    document.getElementById('username').value = row.dataset.u;
+    document.getElementById('password').value = row.dataset.p;
+    err.classList.remove('show');
+  });
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.classList.remove('show');
+  submit.disabled = true;
+  submit.textContent = '正在验证…';
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || '登录失败');
+    location.href = '/';
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.classList.add('show');
+    submit.disabled = false;
+    submit.textContent = '进入工作台';
+  }
+});
+</script>
+</body>
+</html>

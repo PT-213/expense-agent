@@ -1,0 +1,22 @@
+services:
+  expense-agent:
+    build: .
+    image: expense-agent:1.0.0
+    container_name: expense-agent
+    ports:
+      - "8013:8000"
+    environment:
+      EXPENSE_DATA: /app/data
+      EXPENSE_SEED: /app/seed
+      SEED_ON_START: "1"
+      OCR_DPI: "170"
+      SESSION_DAYS: "7"
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+    volumes:
+      - ./data:/app/data
+    dns:
+      - 223.5.5.5
+      - 119.29.29.29
+    restart: unless-stopped
