@@ -120,7 +120,9 @@ TOOLS = {
     "run_rules": "运行 18 条确定性规则引擎，输出全部校验项与命中情况（决策依据，必跑）",
     "search_policy": "检索政策库条款，为当前最突出的问题找到可引用的政策原文（RAG 检索）",
     "check_history": "跨报销单分析申请人历史：疑似重复消费模式、历史退回/复核频次（规则引擎不具备）",
+    "check_feedback": "挖掘人工审批对 AI 结论的历史修正：申请人被推翻次数、金额削减幅度、被反复推翻的规则（反馈闭环）",
 }
+# 无 LLM 时的确定性计划：保持与改造前一致，feedback 工具仅在 LLM 规划下可被调用
 TOOL_ORDER = ["run_rules", "search_policy", "check_history"]
 
 
@@ -208,10 +210,72 @@ def tool_check_history(state: AgentState) -> str:
     return obs
 
 
+def tool_check_feedback(state: AgentState) -> str:
+    """反馈闭环工具：从人工审批记录里挖"人对 AI 的修正"，形成画像反哺预审。"""
+    conn = state.conn
+    claim = state.claim
+    app_id = claim.get("applicant_id")
+    findings: list[str] = []
+    advisory: list[CheckResult] = []
+
+    # 1) 申请人维度：AI 建议复核/退回，但人工最终放行 → 推翻；人工削减金额 → 校准
+    if app_id:
+        rows = conn.execute(
+            "SELECT a.action, a.ai_decision, a.approved_amount AS human_amount, "
+            "       c.approved_amount AS ai_amount, c.claim_no "
+            "FROM approvals a JOIN claims c ON c.id = a.claim_id "
+            "WHERE c.applicant_id = ? AND c.id != ?", (app_id, claim["id"])).fetchall()
+        overrides = [r for r in rows if str(r["ai_decision"]) in ("review", "reject")
+                     and r["action"] == "approve"]
+        cut_rows = [r for r in rows if r["action"] == "approve"
+                    and r["human_amount"] is not None and r["ai_amount"]
+                    and float(r["human_amount"]) < float(r["ai_amount"]) - 0.01]
+        if overrides:
+            findings.append(
+                f"该申请人历史有 {len(overrides)} 单 AI 建议复核/退回但人工仍放行")
+            advisory.append(CheckResult(
+                "A003", "AI-人工分歧画像", "warn", "low",
+                "本申请人存在 AI 结论被人工推翻记录",
+                f"历史 {len(overrides)} 次人工放行覆盖了 AI 复核/退回建议"
+                + (f"；人工平均核减金额 {sum(float(r['ai_amount']) - float(r['human_amount']) for r in cut_rows) / len(cut_rows):.2f} 元" if cut_rows else ""),
+                "参考人工尺度把握复核力度", "如问题轻微可参考历史人工口径从宽处理",
+                source="agent", confidence=0.5,
+            ))
+        elif cut_rows:
+            avg_cut = sum(float(r["ai_amount"]) - float(r["human_amount"]) for r in cut_rows) / len(cut_rows)
+            findings.append(f"人工对该申请人 {len(cut_rows)} 单平均核减 {avg_cut:.2f} 元")
+
+    # 2) 规则维度：哪些 fail 规则被人工反复推翻 → 规则过严的治理信号
+    ruled = conn.execute(
+        "SELECT ch.rule_code, ch.rule_name, COUNT(*) c FROM approvals a "
+        "JOIN claims k ON k.id = a.claim_id "
+        "JOIN checks ch ON ch.claim_id = a.claim_id "
+        "WHERE a.action = 'approve' AND ch.status = 'fail' "
+        "AND ch.rule_code LIKE 'R%' "
+        "GROUP BY ch.rule_code HAVING c >= 2").fetchall()
+    if ruled:
+        top = ", ".join(f"{r['rule_code']} {r['rule_name']}({r['c']}次)" for r in ruled[:3])
+        findings.append(f"存在被人工放行覆盖的阻断规则：{top}")
+        advisory.append(CheckResult(
+            "A004", "规则误报信号", "warn", "low",
+            "部分规则被人工审批反复推翻，可能过严",
+            top,
+            "数据来源：历史 approvals 与 checks 交叉统计",
+            "建议评估相应规则的阈值或豁免条件",
+            source="agent", confidence=0.5,
+        ))
+
+    if advisory:
+        state.extra_checks.extend(advisory)
+    obs = "；".join(findings) if findings else "暂无人工修正记录可参考（反馈数据随审批积累）"
+    return obs
+
+
 TOOL_FN = {
     "run_rules": tool_run_rules,
     "search_policy": tool_search_policy,
     "check_history": tool_check_history,
+    "check_feedback": tool_check_feedback,
 }
 
 
@@ -242,7 +306,8 @@ def _planner_prompt(state: AgentState) -> str:
 1. run_rules 是决策基础，必须先执行；
 2. 出现问题或需要政策依据时，调用 search_policy 检索条款；
 3. 需要判断是否重复报销/申请人风险时，调用 check_history；
-4. 信息足够即 finish，不要重复调用同一工具。
+4. 结论存在争议（如规则命中但情节轻微、或历史上人工常放行）时，调用 check_feedback 查看人工修正画像；
+5. 信息足够即 finish，不要重复调用同一工具。
 
 只输出一行，格式严格为：
 ACTION: <工具名或 finish>"""
@@ -363,6 +428,7 @@ def build_graph() -> CompiledGraph:
     g.add_node("w_rules", _make_worker("run_rules", "规则Agent", 62))
     g.add_node("w_policy", _make_worker("search_policy", "政策Agent", 66))
     g.add_node("w_history", _make_worker("check_history", "风控Agent", 68))
+    g.add_node("w_feedback", _make_worker("check_feedback", "反馈Agent", 69))
     g.add_node("reviewer", node_reviewer)
 
     g.set_entry_point("orchestrator")
@@ -370,11 +436,13 @@ def build_graph() -> CompiledGraph:
         "run_rules": "w_rules",
         "search_policy": "w_policy",
         "check_history": "w_history",
+        "check_feedback": "w_feedback",
         "reviewer": "reviewer",
     })
     g.add_edge("w_rules", "orchestrator")
     g.add_edge("w_policy", "orchestrator")
     g.add_edge("w_history", "orchestrator")
+    g.add_edge("w_feedback", "orchestrator")
     g.add_edge("reviewer", END)
     return g.compile()
 
